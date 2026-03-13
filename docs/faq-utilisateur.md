@@ -7,7 +7,7 @@ Questions fréquentes sur l’utilisation de l’application MDD.
 ## Connexion et compte
 
 **Comment créer un compte ?**  
-Allez sur la page d’accueil puis « S’inscrire ». Renseignez un email, un nom d’utilisateur et un mot de passe (au moins 8 caractères, avec minuscule, majuscule, chiffre et caractère spécial). Validez : vous êtes inscrit et pouvez vous connecter.
+Allez sur la page d’accueil puis cliquez sur « S’inscrire ». Renseignez un email, un nom d’utilisateur et un mot de passe (au moins 8 caractères avec minuscule, majuscule, chiffre et caractère spécial). Validez : votre compte est créé et vous pouvez vous connecter.
 
 **Comment se connecter ?**  
 Cliquez sur « Se connecter ». Entrez votre **email ou votre nom d’utilisateur** et votre mot de passe. Vous restez connecté grâce au cookie de session (refresh token). En cas de déconnexion automatique, reconnectez-vous avec les mêmes identifiants.
@@ -46,7 +46,7 @@ Sur la page Thèmes, cliquez sur « Se désabonner » pour le thème concerné. 
 ## Profil
 
 **Comment consulter ou modifier mon profil ?**  
-Menu « Profil » : vous voyez votre email, nom d’utilisateur et la liste des thèmes auxquels vous êtes abonnés. Vous pouvez modifier l’email, le nom d’utilisateur et le mot de passe puis enregistrer. La modification du mot de passe respecte les mêmes règles que à l’inscription (8 caractères, minuscule, majuscule, chiffre, caractère spécial).
+Menu « Profil » : vous voyez votre email, votre nom d’utilisateur et la liste des thèmes auxquels vous êtes abonné. Vous pouvez modifier l’email, le nom d’utilisateur et le mot de passe puis enregistrer. La modification du mot de passe respecte les mêmes règles qu’à l’inscription (8 caractères, minuscule, majuscule, chiffre, caractère spécial).
 
 **Le fil d’actualité est vide, pourquoi ?**  
-Le feed n’affiche que les articles des thèmes auxquels vous êtes abonnés. Abonnez-vous à au moins un thème pour voir des articles.
+Le feed n’affiche que les articles des thèmes auxquels vous êtes abonné. Abonnez-vous à au moins un thème pour voir des articles.

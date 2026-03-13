@@ -1,24 +1,24 @@
-# MDD — API Contract (MVP)
+# MDD — Contrat d’API (MVP)
 
-## 1) Principes
+## 1) Principes généraux
 
 - **Base path** : `/api`
 - **Format** : JSON UTF‑8 (`Content-Type: application/json`)
 - **Auth** :
   - Endpoints marqués 🔒 : **Authorization: Bearer <accessToken>**
   - Persistance : **refresh token** stocké en **cookie HttpOnly** (renouvellement via `/api/auth/refresh`)
-- **Validation back** : toutes les validations sont faites côté back (le front ne suffit jamais).
-- **Auteur + date** : définis automatiquement côté back lors de la création d’un article ou commentaire.
+- **Validation côté back** : toutes les validations métier sont faites côté back (le front ne suffit jamais).
+- **Auteur + date** : définis automatiquement côté back lors de la création d’un article ou d’un commentaire.
 
 ---
 
 ## 2) Cookies & en-têtes (contrat)
 
-### 2.1 Authorization header (access token)
+### 2.1 En-tête Authorization (access token)
 
 - `Authorization: Bearer <accessToken>`
 
-### 2.2 Cookie refresh token (persistant)
+### 2.2 Cookie de refresh token (persistant)
 
 - Nom : `refreshToken`
 - Attributs recommandés (prod) :
@@ -37,7 +37,7 @@
 
 ---
 
-## 3) Format d’erreur (unique)
+## 3) Format d’erreur (contrat uniforme)
 
 ```json
 {
@@ -47,9 +47,14 @@
     { "field": "password", "message": "..." }
   ]
 }
-4) Auth
-4.1 GET /api/auth/csrf (public)
-But : initialiser le cookie CSRF pour les SPA.
+
+---
+
+## 4) Authentification
+
+### 4.1 GET /api/auth/csrf (public)
+
+But : initialiser le cookie CSRF pour la SPA.
 
 Request : vide
 Response 204 : no content
@@ -58,10 +63,11 @@ Headers (exemple) :
 Set-Cookie: XSRF-TOKEN=<token>; Path=/; SameSite=Lax
 
 Remarque : le cookie CSRF peut aussi être émis sur d’autres réponses.
-Ce endpoint donne un point d’entrée clair côté front.
+Ce endpoint donne un point d’entrée clair côté front pour récupérer le cookie `XSRF-TOKEN`.
 
-4.2 POST /api/auth/register (public + CSRF requis)
-Request:
+### 4.2 POST /api/auth/register (public + CSRF requis)
+
+Request :
 
 ```json
 {
@@ -71,13 +77,13 @@ Request:
 }
 ```
 
-Response 201:
+Response 201 :
 
 ```json
 { "id": 1 }
 ```
 
-Erreurs:
+Erreurs :
 
 400 VALIDATION_ERROR (email invalide, champs manquants, password policy)
 
@@ -85,10 +91,11 @@ Erreurs:
 
 409 CONFLICT (email/username déjà utilisé)
 
-Password policy (back) : >= 8 et contient minuscule + majuscule + chiffre + spécial.
+Règle de mot de passe côté back : longueur ≥ 8 et présence d’au moins une minuscule, une majuscule, un chiffre et un caractère spécial.
 
-4.3 POST /api/auth/login (public + CSRF requis)
-Request:
+### 4.3 POST /api/auth/login (public + CSRF requis)
+
+Request :
 
 ```json
 {
@@ -99,7 +106,7 @@ Request:
 
 `identifier` = email **ou** username.
 
-Response 200:
+Response 200 :
 
 ```json
 {
@@ -113,7 +120,7 @@ Headers (exemple) :
 
 Set-Cookie: refreshToken=<token>; HttpOnly; Secure; SameSite=Lax; Path=/api/auth
 
-Erreurs:
+Erreurs :
 
 400 VALIDATION_ERROR (champs manquants / format)
 
