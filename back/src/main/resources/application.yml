@@ -1,0 +1,39 @@
+oc:
+  app:
+    jwtExpirationMs: ${JWT_EXPIRATION_MS}
+    refreshTokenExpirationMs: ${REFRESH_TOKEN_EXPIRATION_MS}
+    jwtSecret: ${TOKEN_SECRET}
+    cookieSecure: ${COOKIE_SECURE:false}
+spring:
+  config:
+      import: optional:file:./.env[.properties]
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    open-in-view: false
+    defer-datasource-initialization: true
+  application:
+    name: back
+  sql:
+    init:
+      mode: never
+logging:
+  level:
+    org:
+      hibernate:
+        type: info
+      springframework:
+        web:
+          filter:
+            CommonsRequestLoggingFilter: info
+    com:
+      openclassrooms: info
+seed:
+  demo:
+    data: ${SEED_DEMO_DATA:false}

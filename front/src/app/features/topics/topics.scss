@@ -1,0 +1,50 @@
+.page {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 24px 24px 0;
+  background: transparent !important;
+}
+
+.topics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 16px;
+  row-gap: 24px;
+  margin: 0;
+}
+
+.topic-card {
+  margin: 0;
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.topic-title {
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.topic-description {
+  margin: 0 0 16px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  line-clamp: 3;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+.topic-description-label {
+  font-weight: 700;
+  margin-right: 6px;
+}
+
+.topic-actions {
+  display: flex;
+  justify-content: center;
+}
+
+@media (max-width: 600px) {
+  .topics {
+    grid-template-columns: 1fr;
+  }
+}
