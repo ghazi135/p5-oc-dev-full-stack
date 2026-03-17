@@ -1,0 +1,113 @@
+<section class="profile-page">
+  <h1 class="page-title">Profil utilisateur</h1>
+
+  @if (loading()) {
+    <div class="spinner">
+      <mat-progress-spinner mode="indeterminate"></mat-progress-spinner>
+    </div>
+  } @else if (me(); as meData) {
+    <form class="profile-form" [formGroup]="form" (ngSubmit)="submit()">
+      <mat-form-field appearance="outline" class="field">
+        <mat-label>Nom d'utilisateur</mat-label>
+        <input
+          matInput
+          type="text"
+          name="username"
+          formControlName="username"
+          placeholder="Username"
+          autocomplete="username"
+        />
+
+        @if (getDisplayError('username'); as msg) { <mat-error>{{ msg }}</mat-error> }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="field">
+        <mat-label>Email</mat-label>
+        <input
+          matInput
+          type="email"
+          name="email"
+          formControlName="email"
+          placeholder="email@email.fr"
+          autocomplete="email"
+        />
+
+        @if (getDisplayError('email'); as msg) { <mat-error>{{ msg }}</mat-error> }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="field">
+        <mat-label>Nouveau mot de passe (optionnel)</mat-label>
+        <input
+          matInput
+          data-testid="profile-password"
+          type="password"
+          name="new-password"
+          formControlName="password"
+          placeholder="Mot de passe"
+          autocomplete="new-password"
+        />
+        <mat-hint>Min 8 + 1 chiffre + 1 minuscule + 1 majuscule + 1 spécial.</mat-hint>
+
+        @if (getDisplayError('password'); as msg) { <mat-error>{{ msg }}</mat-error> }
+      </mat-form-field>
+
+      @if (globalError()) {
+        <p class="global-error" role="alert">{{ globalError() }}</p>
+      }
+
+      <div class="actions">
+        <button
+          data-testid="profile-save"
+          class="mdd-btn"
+          mat-flat-button
+          color="primary"
+          type="submit"
+          [disabled]="saving() || loading() || isPristine()"
+        >
+          Sauvegarder
+        </button>
+      </div>
+    </form>
+  } @else {
+    <p class="center">Chargement…</p>
+  }
+
+  <div class="separator" aria-hidden="true"></div>
+
+  <h2 class="subscriptions-title">Abonnements</h2>
+
+  @if (topicsLoading()) {
+    <div class="spinner">
+      <mat-progress-spinner mode="indeterminate"></mat-progress-spinner>
+    </div>
+  } @else if (topicsError()) {
+    <p class="global-error" role="alert">{{ topicsError() }}</p>
+  } @else if (subscribedTopics().length) {
+    <div class="topics-grid">
+      @for (t of subscribedTopics(); track t.id) {
+        <mat-card class="topic-card">
+          <mat-card-content class="topic-content">
+            <h3 class="topic-title">{{ t.name }}</h3>
+            <p class="topic-desc">Description: {{ t.description }}</p>
+
+            <div class="topic-actions">
+              <button
+                class="mdd-btn"
+                mat-flat-button
+                [attr.data-testid]="'profile-unsubscribe-' + t.id"
+                color="primary"
+                type="button"
+                (click)="unsubscribe(t.id)"
+                [disabled]="unsubPendingIds().has(t.id)"
+              >
+                Se désabonner
+              </button>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      }
+    </div>
+  } @else {
+    <p class="empty-message">Aucun abonnement…</p>
+  }
+</section>

@@ -1,0 +1,263 @@
+import { HttpErrorResponse } from '@angular/common/http';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { AbstractControl, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { finalize, startWith } from 'rxjs';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+
+import { passwordPolicyValidator } from '@shared/validators/password-policy.validator';
+import { isApiErrorResponse, toFieldErrorMap } from '@core/api/api-error.model';
+import { TopicsApiService } from '@features/topics/topics-api.service';
+import type { TopicListItem } from '@features/topics/models/topic.models';
+import { UserMeApiService } from './user-me-api.service';
+import type {
+  UpdatedResponse,
+  UserMeResponse,
+  UpdateMeRequest,
+} from './models/user-me.models';
+
+interface ProfileFieldErrors {
+  email?: string[];
+  username?: string[];
+  password?: string[];
+}
+
+@Component({
+  selector: 'app-profile',
+  standalone: true,
+  imports: [
+    ReactiveFormsModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatProgressSpinnerModule,
+    MatSnackBarModule,
+  ],
+  templateUrl: './profile.html',
+  styleUrl: './profile.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class Profile implements OnInit {
+  private readonly fb = inject(FormBuilder);
+  private readonly api = inject(UserMeApiService);
+  private readonly topicsApi = inject(TopicsApiService);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly snackBar = inject(MatSnackBar);
+
+  readonly initialMe = signal<Pick<UserMeResponse, 'email' | 'username'> | null>(null);
+  readonly me = signal<UserMeResponse | null>(null);
+  readonly topics = signal<TopicListItem[] | null>(null);
+  readonly loading = signal(true);
+  readonly saving = signal(false);
+  readonly topicsLoading = signal(true);
+  readonly unsubPendingIds = signal<Set<number>>(new Set());
+  readonly globalError = signal<string | null>(null);
+  readonly fieldErrors = signal<ProfileFieldErrors | null>(null);
+  readonly topicsError = signal<string | null>(null);
+
+  readonly form = this.fb.nonNullable.group({
+    email: this.fb.nonNullable.control('', [
+      Validators.required,
+      Validators.email,
+      Validators.maxLength(254),
+    ]),
+    username: this.fb.nonNullable.control('', [Validators.required, Validators.maxLength(50)]),
+    password: this.fb.nonNullable.control('', [
+      Validators.maxLength(72),
+      passwordPolicyValidator(),
+    ]),
+  });
+
+  private readonly formValue = toSignal(
+    this.form.valueChanges.pipe(startWith(this.form.getRawValue())),
+    { initialValue: this.form.getRawValue() }
+  );
+
+  readonly isPristine = computed(() => {
+    const init = this.initialMe();
+    if (!init) return true;
+    const v = this.formValue();
+    const email = v.email ?? '';
+    const username = v.username ?? '';
+    const pwdChanged = !!(v.password ?? '').trim();
+    return email === init.email && username === init.username && !pwdChanged;
+  });
+
+  readonly subscribedTopics = computed(() => (this.topics() ?? []).filter((t) => t.subscribed));
+
+  private static readonly FIELD_ERROR_MESSAGES: Record<
+    'username' | 'email' | 'password',
+    (ctrl: AbstractControl | null) => string | null
+  > = {
+    username: (ctrl) =>
+      ctrl?.touched && ctrl.hasError('required') ? 'Nom d\'utilisateur requis.' : null,
+    email: (ctrl) => {
+      if (!ctrl) return null;
+      if (ctrl.hasError('required')) return 'Email requis.';
+      if (ctrl.hasError('email')) return 'Email invalide.';
+      return null;
+    },
+    password: (ctrl) =>
+      ctrl?.hasError('passwordPolicy') ? 'Le mot de passe ne respecte pas la politique.' : null,
+  };
+
+  /** Message d'erreur à afficher pour un champ (validation client prioritaire, sinon erreur serveur). */
+  getDisplayError(field: 'username' | 'email' | 'password'): string | null {
+    const ctrl = this.form.get(field);
+    const server = this.fieldErrors()?.[field]?.[0];
+    return Profile.FIELD_ERROR_MESSAGES[field](ctrl) ?? server ?? null;
+  }
+
+  ngOnInit(): void {
+    this.loadMe();
+    this.loadTopics();
+  }
+
+  private loadMe(): void {
+    this.loading.set(true);
+    this.globalError.set(null);
+    this.fieldErrors.set(null);
+
+    this.api
+      .me()
+      .pipe(
+        finalize(() => this.loading.set(false)),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe({
+        next: (me: UserMeResponse) => {
+          this.me.set(me);
+          this.initialMe.set({ email: me.email, username: me.username });
+          this.form.patchValue({ email: me.email, username: me.username, password: '' });
+        },
+        error: (err: unknown) => this.handleError(err),
+      });
+  }
+
+  private loadTopics(): void {
+    this.topicsLoading.set(true);
+    this.topicsError.set(null);
+
+    this.topicsApi
+      .listTopics()
+      .pipe(
+        finalize(() => this.topicsLoading.set(false)),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe({
+        next: (topics) => this.topics.set(topics),
+        error: () => {
+          const msg = 'Impossible de charger vos abonnements.';
+          this.topicsError.set(msg);
+          this.snackBar.open(msg, 'OK', { duration: 3000 });
+        },
+      });
+  }
+
+  submit(): void {
+    if (this.form.invalid) return;
+
+    this.saving.set(true);
+    this.globalError.set(null);
+    this.fieldErrors.set(null);
+
+    const raw = this.form.getRawValue();
+    const payload: UpdateMeRequest = {
+      email: raw.email,
+      username: raw.username,
+      password: raw.password?.trim() ? raw.password : null,
+    };
+
+    this.api
+      .updateMe(payload)
+      .pipe(
+        finalize(() => this.saving.set(false)),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe({
+        next: () => {
+          this.snackBar.open('Profil mis à jour.', 'OK', { duration: 2000 });
+          this.loadMe();
+        },
+        error: (err: unknown) => this.handleError(err),
+      });
+  }
+
+  unsubscribe(topicId: number): void {
+    if (this.unsubPendingIds().has(topicId)) return;
+
+    this.globalError.set(null);
+    const wasSubscribed = this.isTopicSubscribed(topicId);
+    this.optimisticSetSubscribed(topicId, false, wasSubscribed);
+    this.setUnsubPending(topicId, true);
+
+    this.api
+      .unsubscribeFromTopic(topicId)
+      .pipe(
+        finalize(() => this.setUnsubPending(topicId, false)),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe({
+        next: () => this.onUnsubscribeSuccess(),
+        error: (err: unknown) => this.onUnsubscribeError(topicId, wasSubscribed, err),
+      });
+  }
+
+  private isTopicSubscribed(topicId: number): boolean {
+    return (this.topics() ?? []).some((t) => t.id === topicId && t.subscribed);
+  }
+
+  private optimisticSetSubscribed(topicId: number, subscribed: boolean, apply: boolean): void {
+    if (!apply) return;
+    this.topics.update((list) => {
+      if (!list) return list;
+      return list.map((t) => (t.id === topicId ? { ...t, subscribed } : t));
+    });
+  }
+
+  private onUnsubscribeSuccess(): void {
+    this.snackBar.open('Abonnement supprimé.', 'OK', { duration: 2000 });
+    this.loadTopics();
+  }
+
+  private onUnsubscribeError(topicId: number, wasSubscribed: boolean, err: unknown): void {
+    this.optimisticSetSubscribed(topicId, true, wasSubscribed);
+    const msg = this.extractApiMessage(err) ?? 'Une erreur est survenue. Réessaie plus tard.';
+    this.snackBar.open(msg, 'OK', { duration: 3000 });
+  }
+
+  private extractApiMessage(err: unknown): string | null {
+    if (err instanceof HttpErrorResponse && isApiErrorResponse(err.error)) {
+      return err.error.message;
+    }
+    return null;
+  }
+
+  private setUnsubPending(topicId: number, isPending: boolean): void {
+    const next = new Set(this.unsubPendingIds());
+    if (isPending) next.add(topicId);
+    else next.delete(topicId);
+    this.unsubPendingIds.set(next);
+  }
+
+  private handleError(err: unknown): void {
+    if (err instanceof HttpErrorResponse && isApiErrorResponse(err.error)) {
+      this.globalError.set(err.error.message);
+      const map = toFieldErrorMap(err.error.fieldErrors);
+      this.fieldErrors.set({
+        email: map['email'],
+        username: map['username'],
+        password: map['password'],
+      });
+      return;
+    }
+    this.globalError.set('Une erreur est survenue. Réessaie plus tard.');
+  }
+}

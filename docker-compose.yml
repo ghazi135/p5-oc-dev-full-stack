@@ -1,0 +1,65 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mdd_mysql
+    environment:
+      MYSQL_DATABASE: mdd
+      MYSQL_USER: mdd
+      MYSQL_PASSWORD: mdd
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 20s
+
+  back:
+    build:
+      context: ./back
+      dockerfile: Dockerfile
+    container_name: mdd_back
+    restart: on-failure
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: mdd
+      DB_USER: mdd
+      DB_PASSWORD: mdd
+      JWT_EXPIRATION_MS: "900000"
+      REFRESH_TOKEN_EXPIRATION_MS: "1209600000"
+      TOKEN_SECRET: "dev-secret-change-me-in-production-min-32-bytes"
+      COOKIE_SECURE: "false"
+      SPRING_DOCKER_COMPOSE_SKIP: "true"
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8080/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  front:
+    build:
+      context: ./front
+      dockerfile: Dockerfile
+    container_name: mdd_front
+    depends_on:
+      back:
+        condition: service_healthy
+    environment:
+      PORT: 4300
+      API_TARGET: http://back:8080
+    ports:
+      - "4300:4300"
+
+volumes:
+  mysql_data:

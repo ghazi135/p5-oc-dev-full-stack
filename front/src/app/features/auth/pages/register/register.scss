@@ -1,0 +1,31 @@
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+mat-form-field {
+  width: 100%;
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.auth-label {
+  font-weight: 600;
+}
+
+.auth-required {
+  margin-left: 2px;
+}
+
+.auth-error {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(244, 67, 54, 0.4);
+  border-radius: 8px;
+}

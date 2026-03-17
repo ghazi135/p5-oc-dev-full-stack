@@ -1,0 +1,85 @@
+<section class="container">
+  <header class="page-header">
+    <a class="back" routerLink="/feed" aria-label="Retour">←</a>
+    <h1 class="title">Créer un nouvel article</h1>
+    <span class="page-header-spacer" aria-hidden="true"></span>
+  </header>
+
+  @if (globalError(); as ge) {
+    <p class="global-error">{{ ge }}</p>
+  }
+
+  @if (loading$ | async) {
+    <div class="loading">
+      <mat-progress-spinner mode="indeterminate" diameter="32"></mat-progress-spinner>
+    </div>
+  } @else {
+    @if (error$ | async; as errMsg) {
+      <p class="global-error">{{ errMsg }}</p>
+    }
+
+    @if (topics$ | async; as topics) {
+      @if (!hasAnySubscribedTopics(topics)) {
+        <p class="hint">Tu dois être abonné à au moins un thème pour publier un article.</p>
+      }
+
+      <form class="form" [formGroup]="form" (ngSubmit)="onSubmit()">
+        <!-- Topic -->
+        <mat-form-field class="field" appearance="outline">
+          <mat-select
+            data-testid="post-topic-select"
+            formControlName="topicId"
+            placeholder="Sélectionner un thème"
+            aria-label="Sélectionner un thème"
+          >
+            @for (t of topics; track t.id) {
+              <mat-option [value]="t.id" [disabled]="!t.subscribed">
+                {{ t.name }}
+              </mat-option>
+            }
+          </mat-select>
+
+          @if (getDisplayError('topicId'); as msg) { <mat-error>{{ msg }}</mat-error> }
+        </mat-form-field>
+
+        <!-- Title -->
+        <mat-form-field class="field" appearance="outline">
+          <input
+            matInput
+            data-testid="post-title"
+            formControlName="title"
+            placeholder="Titre de l'article"
+            aria-label="Titre de l'article"
+          />
+
+          @if (getDisplayError('title'); as msg) { <mat-error>{{ msg }}</mat-error> }
+        </mat-form-field>
+
+        <!-- Content -->
+        <mat-form-field class="field" appearance="outline">
+          <textarea
+            data-testid="post-content"
+            matInput
+            rows="8"
+            formControlName="content"
+            placeholder="Contenu de l'article"
+            aria-label="Contenu de l'article"
+          ></textarea>
+
+          @if (getDisplayError('content'); as msg) { <mat-error>{{ msg }}</mat-error> }
+        </mat-form-field>
+
+        <button
+          mat-flat-button
+          data-testid="post-submit"
+          color="primary"
+          type="submit"
+          class="mdd-btn submit"
+          [disabled]="form.invalid || submitting()"
+        >
+          Créer
+        </button>
+      </form>
+    }
+  }
+</section>
