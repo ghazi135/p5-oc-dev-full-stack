@@ -89,8 +89,8 @@ mmd-app-fullstack/
 ```
 
 0. Cloner le projet
-     git clone https://github.com/MakhloufiAdnan/mmd-app-fullstack.git
-     cd mmd-app-fullstack
+     git clone https://github.com/OpenClassrooms-Student-Center/Developpez-une-application-full-stack-complete.git
+     cd Developpez-une-application-full-stack-complete
 
 1. Démarrer la DB (MySQL)
    Créer back/.env (non versionné), puis :
